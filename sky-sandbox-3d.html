@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#050a12">
+<title>CHOME Sky Sandbox 3D</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050a12;color:#fff;font-family:system-ui,sans-serif}#game{position:fixed;inset:0}canvas{display:block}#menu{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:20px;background:#050a12d9;backdrop-filter:blur(8px)}.panel{width:min(560px,100%);padding:28px;border:1px solid #38bdf866;border-radius:24px;background:#0b1729eF;text-align:center;box-shadow:0 20px 80px #0009}h1{margin:8px 0;color:#8be9f4;font-size:clamp(30px,7vw,52px)}p{color:#c3d4e8;line-height:1.6}.btn{border:0;border-radius:12px;padding:14px 24px;background:linear-gradient(90deg,#38bdf8,#34d399);color:#04111b;font-weight:900;font-size:16px;cursor:pointer}.help{font-size:13px;color:#9fb3cc}#hud{position:fixed;top:14px;left:14px;right:14px;z-index:2;display:flex;justify-content:space-between;pointer-events:none;gap:12px} .pill{padding:10px 14px;border:1px solid #38bdf855;border-radius:14px;background:#081629c9;backdrop-filter:blur(8px);font-weight:700}#error{color:#fecaca;font-size:13px;white-space:pre-wrap;margin-top:12px}#touch{position:fixed;bottom:18px;left:18px;right:18px;z-index:3;display:none;justify-content:space-between;pointer-events:none}.pad{display:flex;gap:10px;pointer-events:auto}.pad button{width:58px;height:58px;border-radius:50%;border:1px solid #7dd3fc99;background:#0b274dcc;color:white;font-size:20px;font-weight:bold;touch-action:none}@media(max-width:700px){#touch{display:flex}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud"><div class="pill">CHOME · SKY SANDBOX</div><div class="pill">Orbs: <span id="score">0</span> / 4</div></div>
+<div id="menu"><div class="panel"><div style="letter-spacing:3px;color:#fbbf24;font-size:12px;font-weight:800">CHOME 3D PLAYGROUND</div><h1>TEARS OF THE SKY</h1><p>Explore floating islands, collect glowing orbs and move around the sky realm.</p><p class="help">Computer: WASD / arrow keys to move · Space to jump<br>Mobile: use the on-screen controls</p><button class="btn" id="start">ENTER THE SKY REALM</button><div id="error"></div></div></div>
+<div id="touch"><div class="pad"><button data-key="a">◀</button><button data-key="d">▶</button></div><div class="pad"><button data-key="w">▲</button><button data-key="s">▼</button><button id="jump">↑</button></div></div>
+<script>
+(function(){
+const errorBox=document.getElementById('error');
+const startButton=document.getElementById('start');
+let scene,camera,renderer,player,velocityY=0,started=false,frame=0,orbs=[],keys={};
+function fail(message){errorBox.textContent=message;console.error(message)}
+function init(){
+ if(typeof THREE==='undefined')throw new Error('Three.js did not load. Check your preview supports external CDN scripts and internet access.');
+ const host=document.getElementById('game');
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x91c9e8);scene.fog=new THREE.Fog(0x91c9e8,55,150);
+ camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,300);
+ renderer=new THREE.WebGLRenderer({antialias:true});
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;host.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0xdff5ff,0x334155,1.6));
+ const sun=new THREE.DirectionalLight(0xfff2c2,2);sun.position.set(25,45,20);sun.castShadow=true;scene.add(sun);
+ const mat=(color)=>new THREE.MeshStandardMaterial({color,roughness:.85});
+ function island(x,y,z,w,h,d,color){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));m.position.set(x,y,z);m.receiveShadow=true;m.castShadow=true;scene.add(m);return m}
+ island(0,0,0,34,3,34,0x557b55);island(-24,7,-18,13,2,13,0x638b61);island(25,10,-30,16,2,16,0x688d69);island(0,-8,-40,12,2,12,0x587f62);
+ // simple trees
+ for(let i=0;i<24;i++){let x=(Math.random()-.5)*28,z=(Math.random()-.5)*28;if(Math.abs(x)<4&&Math.abs(z)<4)continue;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,2,7),mat(0x76502e));trunk.position.set(x,2,z);scene.add(trunk);const crown=new THREE.Mesh(new THREE.ConeGeometry(1.5,3,7),mat(0x1d704d));crown.position.set(x,4,z);scene.add(crown)}
+ player=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.8,4,8),mat(0x168bd0));body.castShadow=true;player.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),mat(0xffd98e));head.position.y=.95;player.add(head);player.position.set(0,2,5);scene.add(player);
+ const positions=[[-24,9,-18],[25,12,-30],[0,3,-40],[10,3,10]];
+ positions.forEach((p)=>{const orb=new THREE.Mesh(new THREE.SphereGeometry(.65,20,16),new THREE.MeshStandardMaterial({color:0xffd84d,emissive:0xe9a900,emissiveIntensity:1.2}));orb.position.set(...p);scene.add(orb);orbs.push(orb)});
+ window.addEventListener('resize',resize);window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')jump()});window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+ document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+ document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump()});
+ animate();
+}
+function resize(){if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
+function jump(){if(started&&player.position.y<=2.05)velocityY=9}
+function animate(){
+ requestAnimationFrame(animate);if(!renderer)return;const dt=Math.min(.04,renderer.info.render.frame?1/60:1/60);
+ if(started){
+  const speed=8*dt;let dx=0,dz=0;if(keys.w||keys.arrowup)dz-=1;if(keys.s||keys.arrowdown)dz+=1;if(keys.a||keys.arrowleft)dx-=1;if(keys.d||keys.arrowright)dx+=1;
+  const len=Math.hypot(dx,dz)||1;player.position.x+=dx/len*speed;player.position.z+=dz/len*speed;
+  velocityY-=20*dt;player.position.y+=velocityY*dt;if(player.position.y<2){player.position.y=2;velocityY=0}
+  player.position.x=Math.max(-42,Math.min(42,player.position.x));player.position.z=Math.max(-48,Math.min(30,player.position.z));
+  orbs.forEach((o,i)=>{if(o.visible){o.rotation.y+=dt*1.5;o.position.y+=Math.sin(frame*.04+i)*.002;if(player.position.distanceTo(o.position)<1.6){o.visible=false;const n=orbs.filter(x=>!x.visible).length;document.getElementById('score').textContent=n}}});
+  const target=new THREE.Vector3(player.position.x,player.position.y+4,player.position.z+9);camera.position.lerp(target,.12);camera.lookAt(player.position.x,player.position.y+1,player.position.z-2);frame++;
+ }else{camera.position.set(0,12,22);camera.lookAt(0,2,0)}
+ renderer.render(scene,camera);
+}
+startButton.addEventListener('click',()=>{if(started)return;try{if(!renderer)init();started=true;document.getElementById('menu').style.display='none'}catch(e){fail('GAME STARTUP FAILED: '+e.message)}});
+})();
+</script>
+</body>
+</html>
