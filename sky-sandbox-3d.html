@@ -35,7 +35,7 @@ function init(){
  island(0,0,0,34,3,34,0x557b55);island(-24,7,-18,13,2,13,0x638b61);island(25,10,-30,16,2,16,0x688d69);island(0,-8,-40,12,2,12,0x587f62);
  // simple trees
  for(let i=0;i<24;i++){let x=(Math.random()-.5)*28,z=(Math.random()-.5)*28;if(Math.abs(x)<4&&Math.abs(z)<4)continue;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,2,7),mat(0x76502e));trunk.position.set(x,2,z);scene.add(trunk);const crown=new THREE.Mesh(new THREE.ConeGeometry(1.5,3,7),mat(0x1d704d));crown.position.set(x,4,z);scene.add(crown)}
- player=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.8,4,8),mat(0x168bd0));body.castShadow=true;player.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),mat(0xffd98e));head.position.y=.95;player.add(head);player.position.set(0,2,5);scene.add(player);
+ player=new THREE.Group();const body=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,1.6,12),mat(0x168bd0));body.castShadow=true;player.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),mat(0xffd98e));head.position.y=.95;player.add(head);player.position.set(0,2,5);scene.add(player);
  const positions=[[-24,9,-18],[25,12,-30],[0,3,-40],[10,3,10]];
  positions.forEach((p)=>{const orb=new THREE.Mesh(new THREE.SphereGeometry(.65,20,16),new THREE.MeshStandardMaterial({color:0xffd84d,emissive:0xe9a900,emissiveIntensity:1.2}));orb.position.set(...p);scene.add(orb);orbs.push(orb)});
  window.addEventListener('resize',resize);window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space')jump()});window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
